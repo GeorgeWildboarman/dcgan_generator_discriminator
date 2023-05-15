@@ -4,7 +4,6 @@ setup(
     name='gan_generator_discriminator',
     version='1.0.0',
     author='GeorgeWildboarman',
-#     url='http://github.com/GeorgeWildboarman/dcgan-generator-discriminator',
-#     download_url='http://github.com/GeorgeWildboarman/dcgan-generator-discriminator',
+    url='https://github.com/GeorgeWildboarman/gan_generator_discriminator',
     packages=find_packages(),
 )
