@@ -14,8 +14,10 @@ def conv4disc_celebA_trained():
   print(os.getcwd())
   print(os.path.exists('/content/dcgan/checkpoints'))
   print(os.path.exists('/content/dcgan/checkpoints/'))
-  print(os.path.exists('/content/checkpoints/'))
   print(os.path.exists('/content/checkpoints'))
+  print(os.path.exists('/content/checkpoints/'))
+  print(os.path.exists('/content/gan-generator-discriminator'))
+  print(os.path.exists('/content/gan-generator-discriminator/'))
   # discriminator = model4conv().build_discriminator(batchnorm=True, dropout=False, dense=False)
   # disc_checkpoint = tf.train.Checkpoint(discriminator)
   # disc_save_path = 'dcgan/checkpoints/conv4disc_celebA_training_checkpoints-1'
