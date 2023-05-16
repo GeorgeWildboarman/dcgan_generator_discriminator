@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 from dcgan.dcgan4conv import model4conv
 
@@ -11,6 +12,9 @@ def conv4gen_celebA_trained():
 def conv4disc_celebA_trained():
   disc_save_dir = 'dcgan/checkpoints/'
   print(os.path.exists(disc_save_dir))
+  print(os.path.exists('/dcgan/checkpoints/'))
+  print(os.path.exists('checkpoints/'))
+  print(os.path.exists('/checkpoints/'))
   # discriminator = model4conv().build_discriminator(batchnorm=True, dropout=False, dense=False)
   # disc_checkpoint = tf.train.Checkpoint(discriminator)
   # disc_save_path = 'dcgan/checkpoints/conv4disc_celebA_training_checkpoints-1'
