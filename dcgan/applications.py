@@ -9,10 +9,12 @@ def conv4gen_celebA_trained():
   return generator
 
 def conv4disc_celebA_trained():
-  discriminator = model4conv().build_discriminator(batchnorm=True, dropout=False, dense=False)
-  disc_checkpoint = tf.train.Checkpoint(discriminator)
+  disc_save_dir = 'dcgan/checkpoints/'
+  print(os.path.exists(disc_save_dir))
+  # discriminator = model4conv().build_discriminator(batchnorm=True, dropout=False, dense=False)
+  # disc_checkpoint = tf.train.Checkpoint(discriminator)
   # disc_save_path = 'dcgan/checkpoints/conv4disc_celebA_training_checkpoints-1'
-  disc_save_path = '/dcgan/checkpoints/conv4disc_celebA_training_checkpoints-1'
-  disc_checkpoint.restore(disc_save_path)
-  return discriminator
+  # disc_save_path = '/dcgan/checkpoints/conv4disc_celebA_training_checkpoints-1'
+  # disc_checkpoint.restore(disc_save_path)
+  # return discriminator
 
