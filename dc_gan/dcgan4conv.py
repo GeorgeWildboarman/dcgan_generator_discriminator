@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 
-class DCGAN_4conv():
+class model4conv():
   '''DCGAN (Deep Convolutional Generative Adversarial Network).
   DCGAN is a type of generative model that uses deep convolutional neural networks
   for both the generator and discriminator components.
