@@ -11,6 +11,7 @@ def conv4gen_celebA_trained():
 
 def conv4disc_celebA_trained():
   disc_save_dir = 'dcgan/checkpoints/'
+  print(os.getcwd())
   print(os.path.exists(disc_save_dir))
   print(os.path.exists('/dcgan/checkpoints/'))
   print(os.path.exists('checkpoints/'))
