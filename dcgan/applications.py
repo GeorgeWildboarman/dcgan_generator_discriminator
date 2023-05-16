@@ -1,28 +1,14 @@
-import os
 import tensorflow as tf
 from dcgan.dcgan4conv import model4conv
 
-def conv4gen_celebA_trained():
+def conv4gen_celebA_trained(gen_save_path):
   generator = model4conv().build_generator(activation='ReLU', dense=False)
   gen_checkpoint = tf.train.Checkpoint(generator)
-  gen_save_path = 'dcgan/checkpoints/conv4gen_celebA_training_checkpoints-1'
   gen_checkpoint.restore(gen_save_path)
   return generator
 
-def conv4disc_celebA_trained():
-  disc_save_dir = 'dcgan/checkpoints/'
-  print(os.getcwd())
-  print(os.listdir())
-  print(os.path.exists('/content'))
-  print(os.path.exists('/content/dcgan/checkpoints/'))
-  print(os.path.exists('/content/checkpoints'))
-  print(os.path.exists('/content/checkpoints/'))
-  print(os.path.exists('/content/gan-generator-discriminator'))
-  print(os.path.exists('/content/gan-generator-discriminator/'))
-  # discriminator = model4conv().build_discriminator(batchnorm=True, dropout=False, dense=False)
-  # disc_checkpoint = tf.train.Checkpoint(discriminator)
-  # disc_save_path = 'dcgan/checkpoints/conv4disc_celebA_training_checkpoints-1'
-  # disc_save_path = '/dcgan/checkpoints/conv4disc_celebA_training_checkpoints-1'
-  # disc_checkpoint.restore(disc_save_path)
-  # return discriminator
-
+def conv4disc_celebA_trained(disc_save_path):
+  discriminator = model4conv().build_discriminator(batchnorm=True, dropout=False, dense=False)
+  disc_checkpoint = tf.train.Checkpoint(discriminator)
+  disc_checkpoint.restore(disc_save_path)
+  return discriminator
