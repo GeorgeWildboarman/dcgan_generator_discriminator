@@ -36,7 +36,7 @@ class model4conv():
                disc_kernel_size = (4, 4), # Kernel size for the discriminator
                dropout_rate = 0.4, # Dropout rate for the discriminator
                ):
-    super(DCGAN_4conv, self).__init__()
+    super(model4conv, self).__init__()
 
     self.latent_dim = latent_dim
     self.image_size = image_size
