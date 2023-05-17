@@ -81,7 +81,8 @@ class model4conv():
     if dense:
       model.add(tf.keras.layers.Dense(dense_units, use_bias=False, input_dim=self.latent_dim))
     else:
-      model.add(tf.keras.layers.Input(shape=(1,1,self.latent_dim)))
+      model.add(tf.keras.layers.Input(shape=(self.latent_dim)))
+      model.add(tf.keras.layers.Reshape((1,1,self.latent_dim)))
       model.add(tf.keras.layers.Conv2DTranspose(self.num_filters*16, project_size, strides=(1, 1), padding='valid', use_bias=False))
     model.add(tf.keras.layers.BatchNormalization())
     if 'leakyrelu' == activation.lower():
