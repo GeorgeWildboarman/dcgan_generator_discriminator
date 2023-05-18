@@ -1,7 +1,163 @@
+import time
+import numpy as np
+
 import tensorflow as tf
 from tensorflow.keras import layers
 
-class model4conv():
+from IPython import display
+
+def build_generator(
+        latent_dim = 100, # Dimension of random noise (latent space vectors)
+        image_size = [64, 64], # Image size
+        channels = 3, # Number of channels of images
+        num_filters = 64, # Number of filters for the last conv layer of the generator
+        gen_kernel_size = (4, 4), # Kernel size for the generator
+        activation='LeakyReLU', # Activation for the generator
+        dense=True
+        ):
+  
+  '''Generator Model for DCGAN
+  The generator uses tf.keras.layers.Conv2DTranspose (upsampling) layers to produce an image from a seed (random noise),
+  which is a vector with the dimention of latent_dim.
+
+  Start with a Dense layer that takes this seed as input.
+  Project the output of the dense layer to a project_shape that is defined by project_size and channels.
+  ex: project_size=[4, 4] and channels=3 make project_shape=[4, 4, 3].
+  Upsample 4 times through Conv2DTranspose layer. This process generates an image that is 2 to the power of 4 times larger than the input.
+  As project_shape=[4, 4, 3] the image generated has the shpae of [64, 64, 3].
+  Notice the tf.keras.layers.LeakyReLU or the tf.keras.layers.ReLU activation for each layer, except the output layer which uses tanh.
+  The default is ReLU.
+
+  arguments:
+    activation: Activation function to use for each layer except the output layer.
+      If you specify LeakyReLU, the activation is LeakyReLU, otherwise the activation is ReLU.
+    dense: Boolean, whether the 1st layer is a Dense layer. If False, the 1st layer is a Conv2DTranspose layer.
+  '''
+  # Project size
+  project_size = [x//16 for x in image_size]
+  # Project shape
+  project_shape = project_size + [num_filters*16]
+  dense_units = project_size[0] * project_size[1] * num_filters*16
+
+  model = tf.keras.Sequential()
+  
+  if dense:
+    model.add(tf.keras.layers.Dense(dense_units, use_bias=False, input_dim=latent_dim))
+  else:
+    model.add(tf.keras.layers.Input(shape=(latent_dim)))
+    model.add(tf.keras.layers.Reshape((1,1,latent_dim)))
+    model.add(tf.keras.layers.Conv2DTranspose(num_filters*16, project_size, strides=(1, 1), padding='valid', use_bias=False))
+  model.add(tf.keras.layers.BatchNormalization())
+  if 'leakyrelu' == activation.lower():
+    activation_layer = tf.keras.layers.LeakyReLU()
+  else:
+    activation_layer = tf.keras.layers.ReLU()
+  model.add(activation_layer)
+  model.add(tf.keras.layers.Reshape(project_shape))
+
+  # conv1
+  model.add(tf.keras.layers.Conv2DTranspose(num_filters*8, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False))
+  model.add(tf.keras.layers.BatchNormalization())
+  if 'leakyrelu' == activation.lower():
+    activation_layer = tf.keras.layers.LeakyReLU()
+  else:
+    activation_layer = tf.keras.layers.ReLU()
+  model.add(activation_layer)
+
+  # conv2
+  model.add(tf.keras.layers.Conv2DTranspose(num_filters*4, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False))
+  model.add(tf.keras.layers.BatchNormalization())
+  if 'leakyrelu' == activation.lower():
+    activation_layer = tf.keras.layers.LeakyReLU()
+  else:
+    activation_layer = tf.keras.layers.ReLU()
+  model.add(activation_layer)
+      
+  # conv4
+  model.add(tf.keras.layers.Conv2DTranspose(num_filters*2, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False))
+  model.add(tf.keras.layers.BatchNormalization())
+  if 'leakyrelu' == activation.lower():
+    activation_layer = tf.keras.layers.LeakyReLU()
+  else:
+    activation_layer = tf.keras.layers.ReLU()
+  model.add(activation_layer)
+      
+  # conv5
+  model.add(tf.keras.layers.Conv2DTranspose(channels, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
+
+  return model
+
+
+def build_discriminator(
+        image_size = [64, 64], # Image size
+        channels = 3, # Number of channels of images
+        num_filters = 64, # Number of filters for the 1st conv layer of the discriminator
+        disc_kernel_size = (4, 4), # Kernel size for the discriminator
+        dropout_rate = 0.4, # Dropout rate for the discriminator
+        batchnorm=False, 
+        dropout=True, 
+        dense=True
+        ):
+  '''The Discriminator
+  The discriminator is a CNN-based image classifier.
+  Use the (as yet untrained) discriminator to classify the generated images as real or fake.
+  The model will be trained to output positive values for real images, and negative values for fake images.
+
+  arguments:
+    image_size: Image size
+    channels: Number of channels of images
+    num_filters: Number of filters for the 1st conv layer of the discriminator
+    disc_kernel_size: Kernel size for the discriminator
+    dropout_rate: Dropout rate for the discriminator
+    batchnorm: Boolean, whether add Batchnormalization.
+    dropout: Boolean, whether add Dropout.
+    dense: Boolean, whether use a Dense layer for output. If False, the last output layer is a Conv2DTranspose layer. 
+  '''
+  # Input Shape
+  input_shape = image_size + [channels]
+
+  model = tf.keras.Sequential()
+
+  # conv1
+  model.add(tf.keras.layers.Conv2D(num_filters, disc_kernel_size, strides=(2, 2), padding='same', input_shape=input_shape))
+  model.add(tf.keras.layers.LeakyReLU())
+  if dropout:
+    model.add(tf.keras.layers.Dropout(dropout_rate))
+
+  # conv2
+  model.add(tf.keras.layers.Conv2D(num_filters*2, disc_kernel_size, strides=(2, 2), padding='same'))
+  if batchnorm:
+    model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.LeakyReLU())
+  if dropout:
+    model.add(tf.keras.layers.Dropout(dropout_rate))
+
+  # conv3
+  model.add(tf.keras.layers.Conv2D(num_filters*4, disc_kernel_size, strides=(2, 2), padding='same'))
+  if batchnorm:
+    model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.LeakyReLU())
+  if dropout:
+    model.add(tf.keras.layers.Dropout(dropout_rate))
+
+  # conv4
+  model.add(tf.keras.layers.Conv2D(num_filters*8, disc_kernel_size, strides=(2, 2), padding='same'))
+  if batchnorm:
+    model.add(tf.keras.layers.BatchNormalization())
+  model.add(tf.keras.layers.LeakyReLU())
+  if dropout:
+    model.add(tf.keras.layers.Dropout(dropout_rate))
+
+  # Output
+  if dense:
+    model.add(tf.keras.layers.Flatten())
+    model.add(tf.keras.layers.Dense(1))
+  else:
+    model.add(tf.keras.layers.Conv2D(1, disc_kernel_size, strides=(2, 2), padding='valid'))
+
+  return model
+
+class DCgan():
   '''DCGAN (Deep Convolutional Generative Adversarial Network).
   DCGAN is a type of generative model that uses deep convolutional neural networks
   for both the generator and discriminator components.
@@ -35,144 +191,111 @@ class model4conv():
                gen_kernel_size = (4, 4), # Kernel size for the generator
                disc_kernel_size = (4, 4), # Kernel size for the discriminator
                dropout_rate = 0.4, # Dropout rate for the discriminator
+               activation='LeakyReLU', # Activation for the generator
+               batchnorm=False, 
+               dropout=True, 
+               dense=True,
+               learning_rate = 0.0002, # Learning rate for the discriminator and the generator optimizers
+               beta1 = 0.5,
+               checkpoint_prefix = None,
                ):
-    super(model4conv, self).__init__()
+    # super(DCgan, self).__init__()
 
     self.latent_dim = latent_dim
-    self.image_size = image_size
-    self.channels = channels
+    self.checkpoint_prefix = checkpoint_prefix
     
-    # Input Shape
-    self.input_shape = image_size + [channels]
-    
-    self.num_filters = num_filters
-    self.gen_kernel_size = gen_kernel_size
-    self.disc_kernel_size = disc_kernel_size
+    self.generator = build_generator(latent_dim, image_size, channels, num_filters, gen_kernel_size, activation, dense)
+    self.discriminator = build_discriminator(image_size, channels, num_filters, disc_kernel_size, dropout_rate, batchnorm, dropout, dense)
 
-    self.dropout_rate = dropout_rate
+    self.cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
+    # Define the optimizers
+    # The discriminator and the generator optimizers are different since you will train two networks separately.
+    self.discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta1)
+    self.generator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta1)
 
-  def build_generator(self, activation='LeakyReLU', dense=True):
-    '''Generator Model
-    The generator uses tf.keras.layers.Conv2DTranspose (upsampling) layers to produce an image from a seed (random noise),
-    which is a vector with the dimention of latent_dim.
+    self.checkpoint = tf.train.Checkpoint(
+        generator_optimizer=self.generator_optimizer,
+        discriminator_optimizer=self.discriminator_optimizer,
+        generator=self.generator,
+        discriminator=self.discriminator)
 
-    Start with a Dense layer that takes this seed as input.
-    Project the output of the dense layer to a project_shape that is defined by project_size and channels.
-    ex: project_size=[4, 4] and channels=3 make project_shape=[4, 4, 3].
-    Upsample 4 times through Conv2DTranspose layer. This process generates an image that is 2 to the power of 4 times larger than the input.
-    As project_shape=[4, 4, 3] the image generated has the shpae of [64, 64, 3].
-    Notice the tf.keras.layers.LeakyReLU or the tf.keras.layers.ReLU activation for each layer, except the output layer which uses tanh.
-    The default is ReLU.
+  # Define the discriminator loss function
+  def discriminator_loss(self, real_output, fake_output):
+      real_loss = self.cross_entropy(tf.ones_like(real_output), real_output)
+      fake_loss = self.cross_entropy(tf.zeros_like(fake_output), fake_output)
+      total_loss = real_loss + fake_loss
+      return total_loss
 
-    arguments:
-      activation: Activation function to use for each layer except the output layer.
-        If you specify LeakyReLU, the activation is LeakyReLU, otherwise the activation is ReLU.
-      dense: Boolean, whether the 1st layer is a Dense layer. If False, the 1st layer is a Conv2DTranspose layer.
-    '''
-    # Project size
-    project_size = [x//16 for x in self.image_size]
-    # Project shape
-    project_shape = project_size + [self.num_filters*16]
-    dense_units = project_size[0] * project_size[1] * self.num_filters*16
+  # Define the generator loss function
+  def generator_loss(self, fake_output):
+      return self.cross_entropy(tf.ones_like(fake_output), fake_output)
 
-    model = tf.keras.Sequential()
-    
-    if dense:
-      model.add(tf.keras.layers.Dense(dense_units, use_bias=False, input_dim=self.latent_dim))
+  def save(self, checkpoint_prefix=None):
+    if checkpoint_prefix:
+      return self.checkpoint.save(file_prefix=checkpoint_prefix)
+    elif self.checkpoint_prefix:
+      return self.checkpoint.save(file_prefix=self.checkpoint_prefix)
     else:
-      model.add(tf.keras.layers.Input(shape=(self.latent_dim)))
-      model.add(tf.keras.layers.Reshape((1,1,self.latent_dim)))
-      model.add(tf.keras.layers.Conv2DTranspose(self.num_filters*16, project_size, strides=(1, 1), padding='valid', use_bias=False))
-    model.add(tf.keras.layers.BatchNormalization())
-    if 'leakyrelu' == activation.lower():
-      activation_layer = tf.keras.layers.LeakyReLU()
-    else:
-      activation_layer = tf.keras.layers.ReLU()
-    model.add(activation_layer)
-    model.add(tf.keras.layers.Reshape(project_shape))
+      return None
 
-    # conv1
-    model.add(tf.keras.layers.Conv2DTranspose(self.num_filters*8, self.gen_kernel_size, strides=(2, 2), padding='same', use_bias=False))
-    model.add(tf.keras.layers.BatchNormalization())
-    if 'leakyrelu' == activation.lower():
-      activation_layer = tf.keras.layers.LeakyReLU()
-    else:
-      activation_layer = tf.keras.layers.ReLU()
-    model.add(activation_layer)
+  def restore(self, save_path):
+    return self.checkpoint.restore(save_path)
 
-    # conv2
-    model.add(tf.keras.layers.Conv2DTranspose(self.num_filters*4, self.gen_kernel_size, strides=(2, 2), padding='same', use_bias=False))
-    model.add(tf.keras.layers.BatchNormalization())
-    if 'leakyrelu' == activation.lower():
-      activation_layer = tf.keras.layers.LeakyReLU()
-    else:
-      activation_layer = tf.keras.layers.ReLU()
-    model.add(activation_layer)
-        
-    # conv4
-    model.add(tf.keras.layers.Conv2DTranspose(self.num_filters*2, self.gen_kernel_size, strides=(2, 2), padding='same', use_bias=False))
-    model.add(tf.keras.layers.BatchNormalization())
-    if 'leakyrelu' == activation.lower():
-      activation_layer = tf.keras.layers.LeakyReLU()
-    else:
-      activation_layer = tf.keras.layers.ReLU()
-    model.add(activation_layer)
-        
-    # conv5
-    model.add(tf.keras.layers.Conv2DTranspose(self.channels, self.gen_kernel_size, strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
+  # Define the training step
+  @tf.function
+  def train_step(self, images):
+      # Generate random noise
+      batch_size = images.shape[0]
+      noise = tf.random.normal([batch_size, self.latent_dim])
 
-    return model
+      with tf.GradientTape(persistent=True) as tape:
+          # Generate fake images
+          generated_images = self.generator(noise, training=True)
 
-  def build_discriminator(self, batchnorm=False, dropout=True, dense=True):
-    '''The Discriminator
-    The discriminator is a CNN-based image classifier.
-    Use the (as yet untrained) discriminator to classify the generated images as real or fake.
-    The model will be trained to output positive values for real images, and negative values for fake images.
+          # Discriminate image
+          real_output = self.discriminator(images, training=True)
+          fake_output = self.discriminator(generated_images, training=True)
 
-    arguments:
-      batchnorm: Boolean, whether add Batchnormalization.
-      dropout: Boolean, whether add Dropout.
-      dense: Boolean, whether use a Dense layer for output. If False, the last output layer is a Conv2DTranspose layer. 
-    '''
-    
-    model = tf.keras.Sequential()
+          # Discriminator loss
+          disc_loss = self.discriminator_loss(real_output, fake_output)
+          # Generator loss
+          gen_loss = self.generator_loss(fake_output)
 
-    # conv1
-    model.add(tf.keras.layers.Conv2D(self.num_filters, self.disc_kernel_size, strides=(2, 2), padding='same', input_shape=self.input_shape))
-    model.add(tf.keras.layers.LeakyReLU())
-    if dropout:
-      model.add(tf.keras.layers.Dropout(self.dropout_rate))
+      # Calculate gradients
+      disc_grad = tape.gradient(disc_loss, self.discriminator.trainable_variables)
+      gen_grad = tape.gradient(gen_loss, self.generator.trainable_variables)
 
-    # conv2
-    model.add(tf.keras.layers.Conv2D(self.num_filters*2, self.disc_kernel_size, strides=(2, 2), padding='same'))
-    if batchnorm:
-      model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.LeakyReLU())
-    if dropout:
-      model.add(tf.keras.layers.Dropout(self.dropout_rate))
+      # Update discriminator weights
+      self.discriminator_optimizer.apply_gradients(zip(disc_grad, self.discriminator.trainable_variables))
 
-    # conv3
-    model.add(tf.keras.layers.Conv2D(self.num_filters*4, self.disc_kernel_size, strides=(2, 2), padding='same'))
-    if batchnorm:
-      model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.LeakyReLU())
-    if dropout:
-      model.add(tf.keras.layers.Dropout(self.dropout_rate))
+      # Update generator weights
+      self.generator_optimizer.apply_gradients(zip(gen_grad, self.generator.trainable_variables))
 
-    # conv4
-    model.add(tf.keras.layers.Conv2D(self.num_filters*8, self.disc_kernel_size, strides=(2, 2), padding='same'))
-    if batchnorm:
-      model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.LeakyReLU())
-    if dropout:
-      model.add(tf.keras.layers.Dropout(self.dropout_rate))
+      return disc_loss, gen_loss
 
-    # Output
-    if dense:
-      model.add(tf.keras.layers.Flatten())
-      model.add(tf.keras.layers.Dense(1))
-    else:
-      model.add(tf.keras.layers.Conv2D(1, self.disc_kernel_size, strides=(2, 2), padding='valid'))
+  def train(self, dataset, epochs):
+    gen_loss_list = []
+    disc_loss_list = []
+    epoch_list = []
+    for epoch in range(epochs):
+      start = time.time()
 
-    return model
+      for i, image_batch in enumerate(dataset):
+        disc_loss, gen_loss = self.train_step(image_batch)
+        print('{}th epoch {}th batch >>> Disc loss: {} , Gen loss: {}'.format(epoch+1, i, disc_loss, gen_loss))
+        display.clear_output(wait=True)
+      
+      # Save the model every 10 epochs
+      if (epoch + 1) % 10 == 0:
+        print('Model saved:', self.save())
+      
+      print ('Time for epoch {} is {} sec'.format(epoch+1, time.time()-start))
+      print('Disc loss: {} , Gen loss: {}'.format(disc_loss, gen_loss))
+
+      epoch_list.append(epoch+1)
+      gen_loss_list.append(gen_loss)
+      disc_loss_list.append(disc_loss)
+
+    return np.array([epoch_list, gen_loss_list, disc_loss_list])
+
