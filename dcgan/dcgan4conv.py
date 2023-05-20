@@ -8,7 +8,7 @@ from IPython import display
 
 def build_generator(
         latent_dim = 100, # Dimension of random noise (latent space vectors)
-        image_size = [64, 64], # Image size
+        image_size = (64, 64), # Image size
         channels = 3, # Number of channels of images
         num_filters = 64, # Number of filters for the last conv layer of the generator
         gen_kernel_size = (4, 4), # Kernel size for the generator
@@ -29,8 +29,12 @@ def build_generator(
   The default is ReLU.
 
   arguments:
-    activation: Activation function to use for each layer except the output layer.
-      If you specify LeakyReLU, the activation is LeakyReLU, otherwise the activation is ReLU.
+    latent_dim: Int. Dimension of random noise (latent space vectors).
+    image_size: Tuple. Image size with the sphape of (height, width).
+    channels: Int. Number of channels of images
+    num_filters: Int. Number of filters for the 1st conv layer of the discriminator.
+    gen_kernel_size: Tuple. Kernel size for the generator
+    activation: str: Str, the activation functions for each layer except the output layer. If you specify "LeakyReLU", the activations are LeakyReLU, otherwise ReLU.
     dense: Boolean, whether the 1st layer is a Dense layer. If False, the 1st layer is a Conv2DTranspose layer.
   '''
   # Project size
@@ -89,7 +93,7 @@ def build_generator(
 
 
 def build_discriminator(
-        image_size = [64, 64], # Image size
+        image_size = (64, 64), # Image size
         channels = 3, # Number of channels of images
         num_filters = 64, # Number of filters for the 1st conv layer of the discriminator
         disc_kernel_size = (4, 4), # Kernel size for the discriminator
@@ -104,17 +108,17 @@ def build_discriminator(
   The model will be trained to output positive values for real images, and negative values for fake images.
 
   arguments:
-    image_size: Image size
-    channels: Number of channels of images
-    num_filters: Number of filters for the 1st conv layer of the discriminator
-    disc_kernel_size: Kernel size for the discriminator
-    dropout_rate: Dropout rate for the discriminator
+    image_size: Tuple. Image size with the sphape of (height, width).
+    channels: Int. Number of channels of images.
+    num_filters: Int. Number of filters for the 1st conv layer of the discriminator.
+    disc_kernel_size: Tuple. Kernel size for the discriminator.
+    dropout_rate: Float. Dropout rate for the discriminator.
     batchnorm: Boolean, whether add Batchnormalization.
     dropout: Boolean, whether add Dropout.
-    dense: Boolean, whether use a Dense layer for output. If False, the last output layer is a Conv2DTranspose layer. 
+    dense: Boolean, whether use a Dense layer for output. If False, the last output layer is a Conv2D layer. 
   '''
   # Input Shape
-  input_shape = image_size + [channels]
+  input_shape = list(image_size) + [channels]
 
   model = tf.keras.Sequential()
 
@@ -185,7 +189,7 @@ class DCgan():
 
   def __init__(self,
                latent_dim = 100, # Dimension of random noise (latent space vectors)
-               image_size = [64, 64], # Image size
+               image_size = (64, 64), # Image size
                channels = 3, # Number of channels of images
                num_filters = 64, # Number of filters for the 1st conv layers of the discriminator
                gen_kernel_size = (4, 4), # Kernel size for the generator
