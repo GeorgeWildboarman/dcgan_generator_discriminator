@@ -6,6 +6,50 @@ from tensorflow.keras import layers
 
 from IPython import display
 
+def load_image(image_path, channels=3):
+  """Loads and preprocesses images.
+  arguments:
+    image_path: String. File path or url to read from. If set url, the url must start with "http" or "https.
+    channels: Int. Number of channels of images.
+  """
+  if 'http' in image_path:
+    # Get image file from url and cache locally.
+    image_path = tf.keras.utils.get_file(os.path.basename(image_path)[-128:], image_path)
+
+  # Load and convert to float32 numpy array, and normalize to range [0, 1].
+  image = tf.io.decode_image(tf.io.read_file(image_path), channels=channels, dtype=tf.float32,)
+  # Normalize to range [-1, 1]
+  image = image*2.0-1.0
+  return image
+
+def augmentation_image(image, image_size=(64, 64), expand=1.1):
+  expand_size = [int(x*expand) for x in image_size]
+  image = tf.image.resize(image, expand_size)
+  image_shape = image_size + (image.shape[-1],)
+  image = tf.image.random_crop(value=image, size=image_shape)
+  image = tf.image.random_flip_left_right(image)
+  return image
+
+def load_and_preprocessing_data(path_list, image_size=(64, 64), batch_size=64, channels=3, aug_num=5, expand=1.1):
+  prep_images=[]
+  print('Number of files to load:', len(path_list))
+  for path in path_list:
+    image = load_image(path, channels)
+    for _ in range(aug_num):
+      prep_image =augmentation_image(image, image_size, expand)
+      prep_images.append(prep_image)
+
+  print('Number of augmented images:',len(prep_images))
+  buffer_size = len(prep_images)
+
+  dataset = tf.data.Dataset.from_tensor_slices(prep_images)
+  dataset = dataset.shuffle(buffer_size).batch(batch_size)
+
+  print('Batch size:',batch_size)
+  print('Num batchs', len(dataset))
+
+  return dataset
+
 def build_generator(
         latent_dim = 100, # Dimension of random noise (latent space vectors)
         image_size = (64, 64), # Image size
