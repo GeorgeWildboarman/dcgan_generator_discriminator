@@ -248,7 +248,6 @@ class DCgan():
                beta1 = 0.5,
                checkpoint_prefix = None,
                ):
-    # super(DCgan, self).__init__()
 
     self.latent_dim = latent_dim
     self.checkpoint_prefix = checkpoint_prefix
