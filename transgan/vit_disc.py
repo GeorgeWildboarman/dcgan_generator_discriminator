@@ -472,3 +472,5 @@ class discriminator(tf.keras.Model):
     x = self.head(x[:,0])
 
     return x
+
+  
