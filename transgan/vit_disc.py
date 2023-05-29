@@ -1,6 +1,60 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 
+class Attention():
+
+  '''Attention.
+    Args
+    ----------
+      dim : Int. The input and out dimension of per token features.
+      n_heads: : Int. Number of attention heads.
+      qkv_bias: Boolean, whether the dense layers use bias vectors/matrices in MultiHeadAttention.
+      attn_p : Float. Dropout probability applied to the query, key and value tensors.
+      proj_p : Float. Dropout probability applied to the output tensor.
+  '''
+  
+  def __init__(self, dim, n_heads=12, qkv_bias=True, attn_p=0., proj_p=0.):
+    super().__init__()
+    self.n_heads = n_heads
+    self.dim = dim
+    self.head_dim = dim // n_heads
+    self.scale = self.head_dim ** -0.5
+
+    self.qkv_layer = tf.keras.layers.Dense(dim * 3, use_bias=qkv_bias)
+    self.attn_drop_layer = tf.keras.layers.Dropout(attn_p)
+    self.proj_layer = tf.keras.layers.Dense(dim)
+    self.proj_drop_layer = tf.keras.layers.Dropout(proj_p)
+      
+
+  def call(self, images):
+    '''
+      Args:
+          x: Tensor whith the shape `(batch_size, num_patches, dim)`.
+
+      Returns
+        Tensor with the shape `(batch_size, num_patches, dim)`.
+    '''
+
+    b, n, c = x.shape
+    qkv = self.qkv_layer(x)  # (batch_size, num_patches, dim*3)
+    qkv = tf.reshape(qkv, (b, n, 3, self.n_heads, self.head_dim)) # (batch_size, num_patches, 3, n_heads, head_dim)
+    qkv = tf.transpose(qkv, (2, 0, 3, 1, 4))
+    q, k, v = qkv[0], qkv[1], qkv[2]
+
+    k_t = tf.transpose(k, (0, 1, -2, -1)) # (batch_size, n_heads, head_dim, num_patches)
+    dp = tf.matmul(q, k_t) * self.scale
+    attn = tf.nn.softmax(dp, axis=-1)
+    attn = self.attn_drop_layer(attn)
+    
+    weighted_avg = tf.matmut(attn, v)
+    weighted_avg = tf.transpose(weighted_avg, (0, 2, 1, 3))
+    weigthed_avg = tf.reshape(weighted_avg, (b,n,c))
+    
+    x = self.proj(weighted_avg)  # (batch_size, n_patches, dim)
+    x = self.proj_drop(x)
+
+    return x
+
 class Block(layers.Layer):
   '''Transformer block.
 
