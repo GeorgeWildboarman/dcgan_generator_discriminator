@@ -59,7 +59,7 @@ class WindowReverse_layer(layers.Layer):
     x = tf.reshape(x, (B, self.H, self.W, -1))
     return x
 
-  class MLP_layer(layers.Layer):
+class MLP_layer(layers.Layer):
   r"""Implement multilayer perceptron (MLP)
 
     Args:
