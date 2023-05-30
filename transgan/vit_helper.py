@@ -59,6 +59,29 @@ class WindowReverse_layer(layers.Layer):
     x = tf.reshape(x, (B, self.H, self.W, -1))
     return x
 
+  class MLP_layer(layers.Layer):
+  r"""Implement multilayer perceptron (MLP)
+
+    Args:
+      hiddden_units: List of output dimension for each dense layer.
+      activation: String. Activation function to use.
+      dropout_rate: Float. Dropout rate.
+
+  """
+  def __init__(self, hidden_units, activation='gelu', dropout_rate=0.):
+    super().__init__()
+    self.dropout_rate = dropout_rate
+    self.dense_layers = []
+
+    for units in hidden_units:
+      self.dense_layers.append(layers.Dense(units, activation=activation))
+      self.dense_layers.append(layers.Dropout(dropout_rate))
+
+  def call(self, x):
+    for layer in self.dense_layers:
+        x = layer(x)
+    return x
+
 class PixelShuffle_layer(layers.Layer):
   r"""Implementation of the PixelShuffle layer
 
