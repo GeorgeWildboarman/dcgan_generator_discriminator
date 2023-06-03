@@ -147,3 +147,4 @@ class DCgan():
       disc_loss_list.append(disc_loss)
 
     return np.array([epoch_list, gen_loss_list, disc_loss_list])
+  
