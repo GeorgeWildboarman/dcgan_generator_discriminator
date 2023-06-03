@@ -19,14 +19,13 @@ class Block(layers.Layer):
         activation: String. Activation function to use in MLP.
 
   '''
-  def __init__(self, embed_dim, num_heads=4, mlp_ratio=4, mlp_p=0., qkv_bias=False, attn_p=0., activation='gelu'):
+  def __init__(self, embed_dim, num_heads=4, mlp_ratio=4, mlp_p=0., qkv_bias=False, attn_p=0., proj_p=0., activation='gelu'):
     super().__init__()
 
     self.LN1 = layers.LayerNormalization(epsilon=1e-6)
 
-    self.MHA =layers.MultiHeadAttention(
-        num_heads=num_heads, key_dim=embed_dim, use_bias=qkv_bias, dropout=attn_p,
-    )
+    # self.MHA = layers.MultiHeadAttention(num_heads=num_heads, key_dim=embed_dim, use_bias=qkv_bias, dropout=attn_p,)
+    self.attention = SelfAttention_layer(dim=embed_dim, num_heads=num_heads, qkv_bias=qkv_bias, attn_p=attn_p, proj_p=proj_p)
 
     self.LN2 = layers.LayerNormalization(epsilon=1e-6)
 
@@ -38,7 +37,8 @@ class Block(layers.Layer):
     x1 = self.LN1(encoded_patches)
 
     # Create a multi-head attention layer.
-    attention_output = self.MHA(x1, x1)
+    # attention_output = self.MHA(x1, x1)
+    attention_output = self.attention(x1)
     
     # Skip connection 1.
     x2 = layers.Add()([attention_output, encoded_patches])
