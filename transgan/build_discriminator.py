@@ -3,6 +3,7 @@ from tensorflow.keras import layers
 
 from transgan.vit_helper import MLP_layer, WindowPartition_layer, WindowReverse_layer, SelfAttention_layer
   
+
 class Block(layers.Layer):
   '''Transformer block.
 
@@ -11,25 +12,26 @@ class Block(layers.Layer):
         num_heads: Int. Number of attention heads.
         mlp_ratio: Int, the factor for determination of the hidden dimension size of the MLP module with respect
         to embed_dim.
-        mlp_drop: Float. Dropout probability applied to the MLP.
+        mlp_p: Float. Dropout probability applied to the MLP.
         qkv_bias: Boolean, whether the dense layers use bias vectors/matrices in MultiHeadAttention.
-        attn_drop : Float. Dropout probability applied to MultiHeadAttention.
+        attn_p : Float. Dropout probability applied to MultiHeadAttention.
+        proj_p : Float. Dropout probability applied to the output tensor.
         activation: String. Activation function to use in MLP.
 
   '''
-  def __init__(self, embed_dim, num_heads=4, mlp_ratio=4, mlp_drop=0., qkv_bias=False, attn_drop=0., activation='gelu'):
+  def __init__(self, embed_dim, num_heads=4, mlp_ratio=4, mlp_p=0., qkv_bias=False, attn_p=0., activation='gelu'):
     super().__init__()
 
     self.LN1 = layers.LayerNormalization(epsilon=1e-6)
 
     self.MHA =layers.MultiHeadAttention(
-        num_heads=num_heads, key_dim=embed_dim, use_bias=qkv_bias, dropout=attn_drop,
+        num_heads=num_heads, key_dim=embed_dim, use_bias=qkv_bias, dropout=attn_p,
     )
 
     self.LN2 = layers.LayerNormalization(epsilon=1e-6)
 
     hidden_units = [embed_dim * mlp_ratio, embed_dim]
-    self.MLP = MLP_layer(hidden_units=hidden_units, dropout_rate=mlp_drop, activation='gelu')
+    self.MLP = MLP_layer(hidden_units=hidden_units, dropout_rate=mlp_p, activation='gelu')
 
   def call(self, encoded_patches):
     # Layer normalization 1.
@@ -163,10 +165,10 @@ class discriminator(tf.keras.Model):
       num_classes: Int. The number of classes.
       embed_dim: Int. Embeddinig dimension.
       patch_siz: Int.
-      mlp_drop: Float. Dropout probability applied to the MLP.
+      mlp_p: Float. Dropout probability applied to the MLP.
       num_heads: Int. Number of attention heads.
       mlp_ratio: Int, the factor for determination of the hidden dimension size of the MLP module with respect to embed_dim.
-      attn_drop : Float. Dropout probability applied to MultiHeadAttention.
+      attn_p : Float. Dropout probability applied to MultiHeadAttention.
       window_size: Int, grid size for grid transformer block.
         
         
@@ -179,10 +181,10 @@ class discriminator(tf.keras.Model):
       num_classes = 1,
       embed_dim = 384,
       patch_size = 2,
-      mlp_drop = 0.,
+      mlp_p = 0.,
       num_heads = 4,
       mlp_ratio = 4,
-      attn_drop = 0.,
+      attn_p = 0.,
       window_size = 4,
       ):
     
@@ -215,25 +217,25 @@ class discriminator(tf.keras.Model):
 
     self.blocks_1 = [
         Block(
-            embed_dim=embed_dim_1, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_drop=mlp_drop, qkv_bias=False, attn_drop=attn_drop, activation='gelu'
+            embed_dim=embed_dim_1, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_p=mlp_p, qkv_bias=False, attn_p=attn_p, activation='gelu'
         ) for _ in range(depth)
     ]
     
     self.blocks_2 = [
         Block(
-            embed_dim=embed_dim_1+embed_dim_2, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_drop=mlp_drop, qkv_bias=False, attn_drop=attn_drop, activation='gelu'
+            embed_dim=embed_dim_1+embed_dim_2, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_p=mlp_p, qkv_bias=False, attn_p=attn_p, activation='gelu'
         ) for _ in range(depth-1)
     ]
     
     self.blocks_21 = [
         Block(
-            embed_dim=embed_dim_1+embed_dim_2, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_drop=mlp_drop, qkv_bias=False, attn_drop=attn_drop, activation='gelu'
+            embed_dim=embed_dim_1+embed_dim_2, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_p=mlp_p, qkv_bias=False, attn_p=attn_p, activation='gelu'
         ) for _ in range(1)
     ]
     
     self.blocks_3 = [
         Block(
-            embed_dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_drop=mlp_drop, qkv_bias=False, attn_drop=attn_drop, activation='gelu'
+            embed_dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_p=mlp_p, qkv_bias=False, attn_p=attn_p, activation='gelu'
         ) for _ in range(depth)
     ]
 
@@ -242,7 +244,7 @@ class discriminator(tf.keras.Model):
 
     self.blocks_last = [
         Block(
-            embed_dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_drop=mlp_drop, qkv_bias=False, attn_drop=attn_drop, activation='gelue'
+            embed_dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_p=mlp_p, qkv_bias=False, attn_p=attn_p, activation='gelue'
         )
     ]
 
