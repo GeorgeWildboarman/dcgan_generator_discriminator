@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from transgan.vit_helper import MLP_layer, WindowPartition_layer, WindowReverse_layer
+from transgan.vit_helper import MLP_layer, WindowPartition_layer, WindowReverse_layer, SelfAttention_layer
   
 class Block(layers.Layer):
   '''Transformer block.
