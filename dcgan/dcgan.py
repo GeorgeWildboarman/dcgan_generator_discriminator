@@ -81,10 +81,9 @@ class DCgan():
       return self.cross_entropy(tf.ones_like(fake_output), fake_output)
 
   def save(self, checkpoint_prefix=None):
+    checkpoint_prefix = checkpoint_prefix or self.checkpoint_prefix
     if checkpoint_prefix:
       return self.checkpoint.save(file_prefix=checkpoint_prefix)
-    elif self.checkpoint_prefix:
-      return self.checkpoint.save(file_prefix=self.checkpoint_prefix)
     else:
       return None
 
