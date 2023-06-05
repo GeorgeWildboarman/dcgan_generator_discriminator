@@ -208,7 +208,7 @@ class Generator(tf.keras.Model):
         )
     ]
 
-    self.conv_1 = layers.Conv2D(3, 1, 1, padding='valid')
+    self.conv_1 = layers.Conv2D(3, 1, 1, padding='valid', activation='tanh')
 
   def call(self, latent_vector):
     batch_size = latent_vector.shape[0]
