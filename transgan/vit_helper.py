@@ -12,7 +12,7 @@ class SelfAttention_layer(layers.Layer):
       proj_p : Float. Dropout probability applied to the output tensor.
   '''
   
-  def __init__(self, dim, num_heads=12, qkv_bias=True, attn_p=0., proj_p=0.):
+  def __init__(self, dim, num_heads=4, qkv_bias=True, attn_p=0., proj_p=0.):
     super().__init__()
     self.num_heads = num_heads
     self.dim = dim
@@ -20,10 +20,20 @@ class SelfAttention_layer(layers.Layer):
     self.scale = self.head_dim ** -0.5
 
     self.qkv_layer = tf.keras.layers.Dense(dim*3, use_bias=qkv_bias, input_shape=(None, dim))
-    self.attn_drop_layer = tf.keras.layers.Dropout(attn_p)
-    self.proj_layer = tf.keras.layers.Dense(dim)
-    self.proj_drop_layer = tf.keras.layers.Dropout(proj_p)
+    
+    if attn_p > 0.0:
+      self.attn_drop_layer = tf.keras.layers.Dropout(attn_p)
+    else:
+      self.attn_drop_layer = tf.keras.layers.Identity()
+    
+    self.proj_layer = tf.keras.layers.Dense(dim, input_shape=(None, dim))
+
+    if proj_p > 0.0:
+      self.proj_drop_layer = tf.keras.layers.Dropout(proj_p)
+    else:
+      self.proj_drop_layer = tf.keras.layers.Identity()
       
+
   def call(self, input):
     '''
       Args:
@@ -40,37 +50,37 @@ class SelfAttention_layer(layers.Layer):
     q, k, v = qkv[0], qkv[1], qkv[2] 
 
     # Scaled-dot product
-    dp = tf.matmul(q, k, transpose_b=True) * self.scale # (batch_size, num_heads, num_patches, num_patches)
+    x = tf.matmul(q, k, transpose_b=True) * self.scale # (batch_size, num_heads, num_patches, num_patches)
 
     # Calc attention weight 
-    attention_weight = tf.nn.softmax(dp, axis=-1)
+    x = tf.nn.softmax(x, axis=-1)
 
     # Drop out applied to attention weight
-    attention_weight = self.attn_drop_layer(attention_weight)
+    x = self.attn_drop_layer(x)
     
     # Attention pooling
-    attention_ouptput = tf.matmul(attention_weight, v) # (batch_size, num_heads, num_patches, head_dim)
-    attention_ouptput = tf.transpose(attention_ouptput, (0, 2, 1, 3))
-    attention_ouptput = tf.reshape(attention_ouptput, (b,n,c))  # (batch_size, num_patches, dim)
+    x = tf.matmul(x, v) # (batch_size, num_heads, num_patches, head_dim)
+    x = tf.transpose(x, (0, 2, 1, 3))
+    x = tf.reshape(x, (b,n,c))  # (batch_size, num_patches, dim)
     
-    output = self.proj_layer(attention_ouptput)  # (batch_size, num_patches, dim)
-    output = self.proj_drop_layer(output)
+    x = self.proj_layer(x)  # (batch_size, num_patches, dim)
+    x = self.proj_drop_layer(x)
 
-    return output
+    return x
 
 class CrossAttention_layer(layers.Layer):
   '''Cross Attention.
     Args
     ----------
       que_dim : Int. The input and out dimension of query.
-      key_dim : Int. The input and out dimension of key.
+      key_dim : Int. The input dimension of key.
       num_heads: : Int. Number of attention heads.
       qkv_bias: Boolean, whether the dense layers use bias vectors/matrices in MultiHeadAttention.
       attn_p : Float. Dropout probability applied to the query, key and value tensors.
       proj_p : Float. Dropout probability applied to the output tensor.
   '''
   
-  def __init__(self, que_dim, key_dim, num_heads=12, qkv_bias=True, attn_p=0., proj_p=0.):
+  def __init__(self, que_dim, key_dim, num_heads=4, qkv_bias=True, attn_p=0., proj_p=0.):
     super().__init__()
     self.num_heads = num_heads
     self.que_dim = que_dim
@@ -82,15 +92,23 @@ class CrossAttention_layer(layers.Layer):
     self.k_layer = tf.keras.layers.Dense(que_dim, use_bias=qkv_bias, input_shape=(None, key_dim))
     self.v_layer = tf.keras.layers.Dense(que_dim, use_bias=qkv_bias, input_shape=(None, key_dim))
 
-    self.attn_drop_layer = tf.keras.layers.Dropout(attn_p)
+    if attn_p > 0.0:
+      self.attn_drop_layer = tf.keras.layers.Dropout(attn_p)
+    else:
+      self.attn_drop_layer = tf.keras.layers.Identity()
+
     self.proj_layer = tf.keras.layers.Dense(que_dim, input_shape=(None, que_dim))
-    self.proj_drop_layer = tf.keras.layers.Dropout(proj_p)
-      
+
+    if proj_p > 0.0:
+      self.proj_drop_layer = tf.keras.layers.Dropout(proj_p)
+    else:
+      self.proj_drop_layer = tf.keras.layers.Identity()
+    
   def call(self, input, embedding):
     '''
       Args:
-          input: Tensor whith the shape `(batch_size, num_patches, que_dim)`.
-          embedding: Tensor whith the shape `(batch_size, num_patches, key_dim)`.
+          input: query. Tensor whith the shape `(batch_size, num_patches, que_dim)`.
+          embedding: key. Tensor whith the shape `(batch_size, num_patches, key_dim)`.
 
       Returns
           output: Tensor with the shape `(batch_size, num_patches, dim)`.
@@ -113,23 +131,23 @@ class CrossAttention_layer(layers.Layer):
     v = tf.transpose(v, (0, 2, 1, 3)) # (batch_size, num_heads, num_embed, head_dim)
 
     # Scaled-dot product
-    dp = tf.matmul(q, k, transpose_b=True) * self.scale # (batch_size, num_heads, num_patches, num_embed)
+    x = tf.matmul(q, k, transpose_b=True) * self.scale # (batch_size, num_heads, num_patches, num_embed)
 
     # Calc attention weight 
-    attention_weight = tf.nn.softmax(dp, axis=-1)
+    x = tf.nn.softmax(x, axis=-1)
 
     # Drop out applied to attention weight
-    attention_weight = self.attn_drop_layer(attention_weight)
+    x = self.attn_drop_layer(x)
     
     # Attention pooling
-    attention_ouptput = tf.matmul(attention_weight, v) # (batch_size, num_heads, num_patches, head_dim)
-    attention_ouptput = tf.transpose(attention_ouptput, (0, 2, 1, 3))
-    attention_ouptput = tf.reshape(attention_ouptput, (b, n, self.que_dim))  # (batch_size, num_patches, que_dim)
+    x = tf.matmul(x, v) # (batch_size, num_heads, num_patches, head_dim)
+    x = tf.transpose(x, (0, 2, 1, 3))
+    x = tf.reshape(x, (b, n, self.que_dim))  # (batch_size, num_patches, que_dim)
     
-    output = self.proj_layer(attention_ouptput)  # (batch_size, num_patches, que_dim)
-    output = self.proj_drop_layer(output)
+    x = self.proj_layer(x)  # (batch_size, num_patches, que_dim)
+    x = self.proj_drop_layer(x)
 
-    return input + output
+    return input + x
 
 class WindowPartition_layer(layers.Layer):
   """
@@ -205,11 +223,41 @@ class MLP_layer(layers.Layer):
 
     for units in hidden_units:
       self.dense_layers.append(layers.Dense(units, activation=activation))
-      self.dense_layers.append(layers.Dropout(dropout_rate))
-
+      if dropout_rate > 0.0:
+        self.dense_layers.append(layers.Dropout(dropout_rate))
+    
   def call(self, x):
     for layer in self.dense_layers:
         x = layer(x)
+    return x
+
+class MLP_layer_2x(layers.Layer):
+  r"""Implement multilayer perceptron (MLP)
+
+    Args:
+      hiddden_units: List of output dimension for each dense layer.
+      activation: String. Activation function to use.
+      dropout_rate: Float. Dropout rate.
+
+  """
+  def __init__(self, hidden_units, activation='gelu', dropout_rate=0., in_dim=None, ):
+    super().__init__()
+    in_dim = in_dim or hidden_units[0]
+    self.dropout_rate = dropout_rate
+    self.dense_1 = layers.Dense(hidden_units[0], activation=activation, input_shape=(None, in_dim))
+    if dropout_rate > 0.0:
+      self.drop_1 = layers.Dropout(dropout_rate)
+      self.drop_2 = layers.Dropout(dropout_rate)
+    else:
+      self.drop_1 = layers.Identity()
+      self.drop_2 = layers.Identity()
+    self.dense_2 = layers.Dense(hidden_units[1], activation=None, input_shape=(None, hidden_units[0]))
+    
+  def call(self, x):
+    x = self.dense_1(x)
+    x = self.drop_1(x)
+    x = self.dense_2(x)
+    x = self.drop_2(x)
     return x
 
 class PixelShuffle_layer(layers.Layer):
