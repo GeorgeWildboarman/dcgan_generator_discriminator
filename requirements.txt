@@ -1,2 +1,2 @@
-Python==3.10.6
+Python==3.10.11
 tensorflow==2.12.0
