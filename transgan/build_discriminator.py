@@ -244,7 +244,7 @@ class discriminator(tf.keras.Model):
 
     self.blocks_last = [
         Block(
-            embed_dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_p=mlp_p, qkv_bias=False, attn_p=attn_p, activation='gelue'
+            embed_dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, mlp_p=mlp_p, qkv_bias=False, attn_p=attn_p, activation='gelu'
         )
     ]
 
