@@ -145,7 +145,8 @@ def build_discriminator(
         dropout_rate = 0.4, # Dropout rate for the discriminator
         batchnorm=False, 
         dropout=True, 
-        dense=True
+        dense=True,
+        pooling=None,
         ):
   '''The Discriminator
   The discriminator is a CNN-based image classifier.
@@ -167,33 +168,65 @@ def build_discriminator(
 
   model = tf.keras.Sequential()
 
+  if pooling:
+    strides=(1,1)
+  else:
+    strides=(2,2)
+
   # conv1
-  model.add(tf.keras.layers.Conv2D(num_filters, disc_kernel_size, strides=(2, 2), padding='same', input_shape=input_shape))
+  model.add(tf.keras.layers.Conv2D(num_filters, disc_kernel_size, strides=strides, padding='same', input_shape=input_shape))
+  if pooling == 'max':
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+  elif pooling:
+    model.add(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+
   model.add(tf.keras.layers.LeakyReLU())
+
   if dropout:
     model.add(tf.keras.layers.Dropout(dropout_rate))
 
   # conv2
-  model.add(tf.keras.layers.Conv2D(num_filters*2, disc_kernel_size, strides=(2, 2), padding='same'))
+  model.add(tf.keras.layers.Conv2D(num_filters*2, disc_kernel_size, strides=strides, padding='same'))
+  if pooling == 'max':
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+  elif pooling:
+    model.add(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+  
   if batchnorm:
     model.add(tf.keras.layers.BatchNormalization())
+  
   model.add(tf.keras.layers.LeakyReLU())
+  
   if dropout:
     model.add(tf.keras.layers.Dropout(dropout_rate))
 
   # conv3
-  model.add(tf.keras.layers.Conv2D(num_filters*4, disc_kernel_size, strides=(2, 2), padding='same'))
+  model.add(tf.keras.layers.Conv2D(num_filters*4, disc_kernel_size, strides=strides, padding='same'))
+  if pooling == 'max':
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+  elif pooling:
+    model.add(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+
   if batchnorm:
     model.add(tf.keras.layers.BatchNormalization())
+
   model.add(tf.keras.layers.LeakyReLU())
+
   if dropout:
     model.add(tf.keras.layers.Dropout(dropout_rate))
 
   # conv4
-  model.add(tf.keras.layers.Conv2D(num_filters*8, disc_kernel_size, strides=(2, 2), padding='same'))
+  model.add(tf.keras.layers.Conv2D(num_filters*8, disc_kernel_size, strides=strides, padding='same'))
+  if pooling == 'max':
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+  elif pooling:
+    model.add(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+
   if batchnorm:
     model.add(tf.keras.layers.BatchNormalization())
+
   model.add(tf.keras.layers.LeakyReLU())
+
   if dropout:
     model.add(tf.keras.layers.Dropout(dropout_rate))
 
