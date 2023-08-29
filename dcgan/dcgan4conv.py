@@ -277,6 +277,7 @@ class DCgan():
                batchnorm=False, 
                dropout=True, 
                dense=True,
+               pooling=None,
                learning_rate = 0.0002, # Learning rate for the discriminator and the generator optimizers
                beta1 = 0.5,
                checkpoint_prefix = None,
@@ -286,7 +287,7 @@ class DCgan():
     self.checkpoint_prefix = checkpoint_prefix
     
     self.generator = build_generator(latent_dim, image_size, channels, num_filters, gen_kernel_size, activation, dense)
-    self.discriminator = build_discriminator(image_size, channels, num_filters, disc_kernel_size, dropout_rate, batchnorm, dropout, dense)
+    self.discriminator = build_discriminator(image_size, channels, num_filters, disc_kernel_size, dropout_rate, batchnorm, dropout, dense, pooling)
 
     self.cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
