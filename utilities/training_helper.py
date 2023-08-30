@@ -18,10 +18,10 @@ def show_batch_images(dataset):
     plt.axis('off')
   plt.show()
 
-def show_gen_image(generator, latent_dim=100):
+def show_gen_image(generator, latent_dim=100, seed=None):
   # latent_dim : Define the dimension of random noise (latent space vectors)
   # Generate a random latent vector
-  latent_vector = tf.random.normal([5,latent_dim])
+  latent_vector = tf.random.normal([5,latent_dim], seed=seed)
   
   # Generate an image using the generator model
   generated_image = generator(latent_vector)
