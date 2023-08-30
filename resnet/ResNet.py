@@ -31,11 +31,11 @@ class ResNet_Block(layers.Layer):
 
   def call(self, input):
     # Residual Block
-    x = self.norm1(input)
+    x = self.norm1(input, training=False)
     x = self.act1(x)
     x = self.conv1(x)
 
-    x = self.norm2(x)
+    x = self.norm2(x, training=False)
     x = self.act2(x)
     x = self.conv2(x)
 
@@ -106,11 +106,11 @@ class SEResNet_Block(layers.Layer):
 
   def call(self, input):
     # Residual Block
-    x = self.norm1(input)
+    x = self.norm1(input, training=False)
     x = self.act1(x)
     x = self.conv1(x)
 
-    x = self.norm2(x)
+    x = self.norm2(x, training=False)
     x = self.act2(x)
     x = self.conv2(x)
 
