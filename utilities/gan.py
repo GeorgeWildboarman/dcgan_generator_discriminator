@@ -18,10 +18,19 @@ class ganTraining():
                generator, # Tf.Model, generator model.
                discriminator, #Tf.Model, discriminator model.
                latent_dim = 100, # Dimension of random noise (latent space vectors)
-               learning_rate = 0.0002, # Learning rate for the discriminator and the generator optimizers
-               beta1 = 0.5,
+               # learning_rate = 0.0002, # Learning rate for the discriminator and the generator optimizers
+               # beta_1 = 0.5,
+               # beta_2 = 0.999,
+               learning_rate = 0.001,
+               beta_1 = 0.9,
+               beta_2 = 0.999,
                checkpoint_prefix = None,
                ):
+
+    # learning_rate=0.001,
+    # beta_1=0.9,
+    # beta_2=0.999,
+    # epsilon=1e-07,
 
     self.latent_dim = latent_dim
     self.checkpoint_prefix = checkpoint_prefix
@@ -33,8 +42,8 @@ class ganTraining():
 
     # Define the optimizers
     # The discriminator and the generator optimizers are different since you will train two networks separately.
-    self.discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta1)
-    self.generator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta1)
+    self.discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2)
+    self.generator_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1, beta_2=beta_2)
 
     self.checkpoint = tf.train.Checkpoint(
         generator_optimizer=self.generator_optimizer,
@@ -72,11 +81,11 @@ class ganTraining():
 
       with tf.GradientTape(persistent=True) as tape:
           # Generate fake images
-          generated_images = self.generator(noise, training=True)
+          generated_images = self.generator(noise)
 
           # Discriminate image
-          real_output = self.discriminator(images, training=True)
-          fake_output = self.discriminator(generated_images, training=True)
+          real_output = self.discriminator(images)
+          fake_output = self.discriminator(generated_images)
 
           # Discriminator loss
           disc_loss = self.discriminator_loss(real_output, fake_output)
