@@ -3,9 +3,36 @@ import os
 
 import numpy as np
 from IPython import display
+import matplotlib.pyplot as plt
 
 import tensorflow as tf
 from tensorflow.keras import layers
+
+
+def show_batch_images(dataset):
+  batch_images = next(iter(dataset))
+  for i, img in enumerate(batch_images[:5]):
+    plt.subplot(3, 5, i+1)
+    img =  tf.cast((img+1.)*.5, dtype = tf.float32) 
+    plt.imshow(img)
+    plt.axis('off')
+  plt.show()
+
+def show_gen_image(generator, latent_dim=100):
+  # latent_dim : Define the dimension of random noise (latent space vectors)
+  # Generate a random latent vector
+  latent_vector = tf.random.normal([5,latent_dim])
+  
+  # Generate an image using the generator model
+  generated_image = generator(latent_vector)
+  
+  image = tf.cast(generated_image[2]*.5+.5, dtype = tf.float32) 
+  print('Max value:', image.numpy().max())
+  print('Min value:', image.numpy().min())
+  # Display the generated image
+  plt.imshow(image)
+  plt.axis('off')
+  plt.show()
 
 def load_image(image_path, channels=3):
   """Loads and preprocesses images.
