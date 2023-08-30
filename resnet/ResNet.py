@@ -27,6 +27,8 @@ class ResNet_Block(layers.Layer):
     self.act2 = layers.Activation(tf.nn.relu)
     self.conv2 = layers.Conv2D(filter_size, kernel_size, strides=(1,1), padding='same')
 
+    self.add = layers.Add()
+
   def call(self, input):
     # Residual Block
     x = self.norm1(input)
@@ -42,7 +44,9 @@ class ResNet_Block(layers.Layer):
     for layer in self.shortcutblock:
       skip = layer(skip)
 
-    return x + skip
+    x = self.add([x, skip])
+
+    return x
 
 
 class SE_Block(layers.Layer):
@@ -55,7 +59,7 @@ class SE_Block(layers.Layer):
     super(SE_Block, self).__init__()
 
     self.num_filters = num_filters
-    
+
     self.avepooling = layers.GlobalAveragePooling2D()
     self.dens1 = layers.Dense(num_filters//ratio, activation='relu')
     self.dens2 = layers.Dense(num_filters, activation='sigmoid')
@@ -98,6 +102,8 @@ class SEResNet_Block(layers.Layer):
 
     self.seblock = SE_Block(filter_size)
 
+    self.add = layers.Add()
+
   def call(self, input):
     # Residual Block
     x = self.norm1(input)
@@ -116,7 +122,9 @@ class SEResNet_Block(layers.Layer):
     for layer in self.shortcutblock:
       skip = layer(skip)
 
-    return x + skip
+    x = self.add([x, skip])
+
+    return x
 
 def build_generator(
         latent_dim = 100, # Dimension of random noise (latent space vectors)
