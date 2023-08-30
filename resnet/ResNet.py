@@ -64,7 +64,7 @@ def build_generator(
         gen_kernel_size = (4, 4), # Kernel size for the generator
         activation='LeakyReLU', # Activation for the generator
         dense=True,
-        resnet = None,
+        resnet = '',
         ):
   
   '''Generator Model for DCGAN
