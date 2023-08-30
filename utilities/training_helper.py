@@ -91,12 +91,12 @@ class ganTraining():
                generator, # Tf.Model, generator model.
                discriminator, #Tf.Model, discriminator model.
                latent_dim = 100, # Dimension of random noise (latent space vectors)
-               # learning_rate = 0.0002, # Learning rate for the discriminator and the generator optimizers
-               # beta_1 = 0.5,
-               # beta_2 = 0.999,
-               learning_rate = 0.001,
-               beta_1 = 0.9,
+               learning_rate = 0.0002, # Learning rate for the discriminator and the generator optimizers
+               beta_1 = 0.5,
                beta_2 = 0.999,
+               # learning_rate = 0.001,
+               # beta_1 = 0.9,
+               # beta_2 = 0.999,
                checkpoint_prefix = None,
                ):
 
