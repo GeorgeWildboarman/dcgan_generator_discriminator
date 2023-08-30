@@ -207,7 +207,8 @@ def build_discriminator(
     model.add(tf.keras.layers.Dense(1))
   else:
     model.add(tf.keras.layers.Conv2D(1, disc_kernel_size, strides=(2, 2), padding='valid'))
-
+    model.add(tf.keras.layers.GlobalAveragePooling2D())
+    
   return model
 
 class DCgan():
