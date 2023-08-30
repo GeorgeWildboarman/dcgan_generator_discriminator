@@ -45,16 +45,78 @@ class ResNet_Block(layers.Layer):
     return x + skip
 
 
-# class SEResNet_Block(layers.Layer):
-#   def __init__(self, filter_size=16, kernel_size=(3,3), strides=(1,1)):
-#     ''' args:
-#          filter_size: numbers of output filters.
-#          kernel_size: kernel_size. default is (3,3)
-#          strides: turple. If this is not (1,1), skip connection are replaced to convolution layer and it makes an output downsized.
-#     '''
-#     super(SEResNet_Block, self).__init__()
+class SE_Block(layers.Layer):
+  def __init__(self, num_filters=16, ratio=16):
+    ''' args:
+         num_filters: numbers of output filters.
+         kernel_size: kernel_size. default is (3,3)
+         strides: turple. If this is not (1,1), skip connection are replaced to convolution layer and it makes an output downsized.
+    '''
+    super(SE_Block, self).__init__()
 
+    self.num_filters = num_filters
+    
+    self.avepooling = layers.GlobalAveragePooling2D()
+    self.dens1 = layers.Dense(num_filters//ratio, activation='relu')
+    self.dens2 = layers.Dense(num_filters, activation='sigmoid')
+    self.reshape = layers.Reshape((1, 1, num_filters))
+    self.multiply = layers.Multiply()
 
+  def call(self, input):
+    x = self.avepooling(input)
+    x = self.dens1(x)
+    x = self.dens2(x)
+    x = self.reshape(x)
+    x = self.multiply([input, x])
+    return x
+
+class SEResNet_Block(layers.Layer):
+  def __init__(self, filter_size=16, kernel_size=(3,3), strides=(1,1)):
+    ''' args:
+         filter_size: numbers of output filters.
+         kernel_size: kernel_size. default is (3,3)
+         strides: turple. If this is not (1,1), skip connection are replaced to convolution layer and it makes an output downsized.
+    '''
+    super(SEResNet_Block, self).__init__()
+
+    self.norm1 = layers.BatchNormalization()
+    self.act1 = layers.Activation(tf.nn.relu)
+    self.conv1 = layers.Conv2D(filter_size, kernel_size, strides=strides, padding='same')
+
+    if strides == (1,1):
+      self.shortcutblock = [layers.Identity()]
+    else:
+      self.shortcutblock = [
+          layers.BatchNormalization(),
+          layers.Activation(tf.nn.relu),
+          layers.Conv2D(filter_size, (1,1), strides=strides, padding='same')
+       ]
+
+    self.norm2 = layers.BatchNormalization()
+    self.act2 = layers.Activation(tf.nn.relu)
+    self.conv2 = layers.Conv2D(filter_size, kernel_size, strides=(1,1), padding='same')
+
+    self.seblock = SE_Block(filter_size)
+
+  def call(self, input):
+    # Residual Block
+    x = self.norm1(input)
+    x = self.act1(x)
+    x = self.conv1(x)
+
+    x = self.norm2(x)
+    x = self.act2(x)
+    x = self.conv2(x)
+
+    # SE block
+    x = self.seblock(x)
+
+    # Skip Connection Block
+    skip = input
+    for layer in self.shortcutblock:
+      skip = layer(skip)
+
+    return x + skip
 
 def build_generator(
         latent_dim = 100, # Dimension of random noise (latent space vectors)
