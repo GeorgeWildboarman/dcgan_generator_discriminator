@@ -644,3 +644,5 @@ class SEResNet_discriminator(tf.keras.Model):
     for layer in self.header_block:
       x = layer(x)
     return x
+
+
