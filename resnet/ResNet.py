@@ -325,4 +325,146 @@ def build_discriminator(
     model.add(tf.keras.layers.GlobalAveragePooling2D())
 
   return model
-  
+
+
+class SEResNet_generator(tf.keras.Model):
+  '''Generator Model for DCGAN with SE-ResNet
+  A Deep Convolutional(DC) generator uses tf.keras.layers.Conv2DTranspose (upsampling) layers to produce an image from a seed (random noise), 
+  which is a vector with the dimension of latent_dim. This generator is improved with adding SE-ResNet blocks.
+
+  arguments:
+    latent_dim: Int. Dimension of random noise (latent space vectors).
+    image_size: Tuple. Image size with the sphape of (height, width).
+    channels: Int. Number of channels of images
+    num_filters: Int. Number of filters for the 1st conv layer of the discriminator.
+    gen_kernel_size: Tuple. Kernel size for the generator
+    activation: str: Str, the activation functions for each layer except the output layer. If you specify "LeakyReLU", the activations are LeakyReLU, otherwise ReLU.
+    dense: Boolean, whether the 1st layer is a Dense layer. If False, the 1st layer is a Conv2DTranspose layer.
+    resnet: Str, ResNet is adopted when 'Res', SEResnet is adopted when 'SE', None is none adopt.
+  '''
+  def __init__(self,
+          latent_dim = 100, # Dimension of random noise (latent space vectors)
+          image_size = (64, 64), # Image size
+          channels = 3, # Number of channels of images
+          num_filters = 64, # Number of filters for the last conv layer of the generator
+          gen_kernel_size = (4, 4), # Kernel size for the generator
+          activation='LeakyReLU', # Activation for the generator
+          dense=True,
+          resnet = '',
+          num_blocks=[3,3,3], # List of number of blocks               
+          ):
+    super().__init__()
+    # Project size
+    project_size = [x//16 for x in image_size]
+    # Project shape
+    project_shape = project_size + [num_filters*16]
+    dense_units = project_size[0] * project_size[1] * num_filters*16
+
+    if dense:
+      self.initial_block=[
+          tf.keras.layers.Dense(dense_units, use_bias=False, input_dim=latent_dim)
+      ]
+    else:
+      self.initial_block=[
+          tf.keras.layers.Input(shape=(latent_dim)),
+          tf.keras.layers.Reshape((1,1,latent_dim)),
+          tf.keras.layers.Conv2DTranspose(num_filters*16, project_size, strides=(1, 1), padding='valid', use_bias=False),
+      ]
+
+    norm = tf.keras.layers.BatchNormalization()
+    if 'leakyrelu' == activation.lower():
+      act = tf.keras.layers.LeakyReLU()
+    else:
+      act = tf.keras.layers.ReLU()
+    reshape = tf.keras.layers.Reshape(project_shape)
+
+    self.initial_block.extend([norm, act, reshape])
+
+    # ResNet Block 1
+    if 'se' in resnet.lower():
+      block = [
+          SEResNet_Block(num_filters*16) for _ in range(num_blocks[0])
+      ]
+    elif 'res' in resnet.lower():
+      block = [
+          ResNet_Block(num_filters*16) for _ in range(num_blocks[0])
+      ]
+    else:
+      block = []
+    self.res_block1 = block
+
+    # conv block1
+    conv = tf.keras.layers.Conv2DTranspose(num_filters*8, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False)
+    norm = tf.keras.layers.BatchNormalization()
+    if 'leakyrelu' == activation.lower():
+      act = tf.keras.layers.LeakyReLU()
+    else:
+      act = tf.keras.layers.ReLU()
+    self.conv_block1 = [conv, norm, act]
+
+    # ResNet Block 2
+    if 'se' in resnet.lower():
+      block = [
+          SEResNet_Block(num_filters*8) for _ in range(num_blocks[1])
+      ]
+    elif 'res' in resnet.lower():
+      block = [
+          ResNet_Block(num_filters*8) for _ in range(num_blocks[1])
+      ]
+    else:
+      block = []
+    self.res_block2 = block
+
+    # conv2
+    conv = tf.keras.layers.Conv2DTranspose(num_filters*4, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False)
+    norm = tf.keras.layers.BatchNormalization()
+    if 'leakyrelu' == activation.lower():
+      act = tf.keras.layers.LeakyReLU()
+    else:
+      act = tf.keras.layers.ReLU()
+    self.conv_block2 = [conv, norm, act]
+
+    # ResNet Block 3
+    if 'se' in resnet.lower():
+      block = [
+          SEResNet_Block(num_filters*4) for _ in range(num_blocks[2])
+      ]
+    elif 'res' in resnet.lower():
+      block = [
+          ResNet_Block(num_filters*4) for _ in range(num_blocks[2])
+      ]
+    else:
+      block = []
+    self.res_block3 = block
+
+    # conv3
+    conv = tf.keras.layers.Conv2DTranspose(num_filters*2, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False)
+    norm = tf.keras.layers.BatchNormalization()
+    if 'leakyrelu' == activation.lower():
+      act = tf.keras.layers.LeakyReLU()
+    else:
+      act = tf.keras.layers.ReLU()
+    self.conv_block3 = [conv, norm, act]
+
+    # conv4
+    conv = tf.keras.layers.Conv2DTranspose(channels, gen_kernel_size, strides=(2, 2), padding='same', use_bias=False, activation='tanh')
+    self.conv_block4 = [conv]
+
+  def call(self, x):
+    for layer in self.initial_block:
+      x = layer(x)
+    for layer in self.res_block1:
+      x = layer(x)
+    for layer in self.conv_block1:
+      x = layer(x)
+    for layer in self.res_block2:
+      x = layer(x)
+    for layer in self.conv_block2:
+      x = layer(x)
+    for layer in self.res_block3:
+      x = layer(x)
+    for layer in self.conv_block3:
+      x = layer(x)
+    for layer in self.conv_block4:
+      x = layer(x)
+    return x
