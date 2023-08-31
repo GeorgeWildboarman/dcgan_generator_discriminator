@@ -468,3 +468,179 @@ class SEResNet_generator(tf.keras.Model):
     for layer in self.conv_block4:
       x = layer(x)
     return x
+
+class SEResNet_discriminator(tf.keras.Model):
+  '''The Discriminator
+  The discriminator is a CNN-based image classifier.
+  Use the (as yet untrained) discriminator to classify the generated images as real or fake.
+  The model will be trained to output positive values for real images, and negative values for fake images.
+
+  arguments:
+    image_size: Tuple. Image size with the sphape of (height, width).
+    channels: Int. Number of channels of images.
+    num_filters: Int. Number of filters for the 1st conv layer of the discriminator.
+    disc_kernel_size: Tuple. Kernel size for the discriminator.
+    dropout_rate: Float. Dropout rate for the discriminator.
+    batchnorm: Boolean, whether add Batchnormalization.
+    dropout: Boolean, whether add Dropout.
+    dense: Boolean, whether use a Dense layer for output. If False, the last output layer is a Conv2D layer.
+  '''
+  def __init__(self,
+        image_size = (64, 64), # Image size
+        channels = 3, # Number of channels of images
+        num_filters = 64, # Number of filters for the 1st conv layer of the discriminator
+        disc_kernel_size = (4, 4), # Kernel size for the discriminator
+        dropout_rate = 0.4, # Dropout rate for the discriminator
+        batchnorm=False,
+        dropout=True,
+        dense=True,
+        pooling=None,
+        resnet = '',
+        num_blocks = [1,0,0,0]
+        ):
+    super().__init__()
+
+    # Input Shape
+    input_shape = list(image_size) + [channels]
+
+
+    if pooling:
+      strides=(1,1)
+    else:
+      strides=(2,2)
+
+    # conv1
+    self.conv_block1 = [tf.keras.layers.Conv2D(num_filters, disc_kernel_size, strides=strides, padding='same', input_shape=input_shape)]
+    if pooling == 'max':
+      self.conv_block1.append(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+    elif pooling:
+      self.conv_block1.append(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+
+    self.conv_block1.append(tf.keras.layers.LeakyReLU())
+
+    if dropout:
+      self.conv_block1.append(tf.keras.layers.Dropout(dropout_rate))
+
+    # ResNet Block 1
+    if 'se' in resnet.lower():
+      block = [
+          SEResNet_Block(num_filters) for _ in range(num_blocks[0])
+      ]
+    elif 'res' in resnet.lower():
+      block = [
+          ResNet_Block(num_filters) for _ in range(num_blocks[0])
+      ]
+    else:
+      block = []
+    self.res_block1 = block
+
+    # conv2
+    self.conv_block2 = [tf.keras.layers.Conv2D(num_filters*2, disc_kernel_size, strides=strides, padding='same')]
+    if pooling == 'max':
+      self.conv_block2.append(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+    elif pooling:
+      self.conv_block2.append(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+
+    if batchnorm:
+      self.conv_block2.append(tf.keras.layers.BatchNormalization())
+
+    self.conv_block2.append(tf.keras.layers.LeakyReLU())
+
+    if dropout:
+      self.conv_block2.append(tf.keras.layers.Dropout(dropout_rate))
+
+    # ResNet Block 2
+    if 'se' in resnet.lower():
+      block = [
+          SEResNet_Block(num_filters*2) for _ in range(num_blocks[1])
+      ]
+    elif 'res' in resnet.lower():
+      block = [
+          ResNet_Block(num_filters*2) for _ in range(num_blocks[1])
+      ]
+    else:
+      block = []
+    self.res_block2 = block
+
+    # conv3
+    self.conv_block3 = [tf.keras.layers.Conv2D(num_filters*4, disc_kernel_size, strides=strides, padding='same')]
+    if pooling == 'max':
+      self.conv_block3.append(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+    elif pooling:
+      self.conv_block3.append(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+
+    if batchnorm:
+      self.conv_block3.append(tf.keras.layers.BatchNormalization())
+
+    self.conv_block3.append(tf.keras.layers.LeakyReLU())
+
+    if dropout:
+      self.conv_block3.append(tf.keras.layers.Dropout(dropout_rate))
+    
+    # ResNet Block 3
+    if 'se' in resnet.lower():
+      block = [
+          SEResNet_Block(num_filters*4) for _ in range(num_blocks[2])
+      ]
+    elif 'res' in resnet.lower():
+      block = [
+          ResNet_Block(num_filters*4) for _ in range(num_blocks[2])
+      ]
+    else:
+      block = []
+    self.res_block3 = block
+
+    # conv4
+    self.conv_block4 = [tf.keras.layers.Conv2D(num_filters*8, disc_kernel_size, strides=strides, padding='same')]
+    if pooling == 'max':
+      self.conv_block4.append(tf.keras.layers.MaxPooling2D(pool_size=(2, 2)))
+    elif pooling:
+      self.conv_block4.append(tf.keras.layers.AveragePooling2D(pool_size=(2, 2)))
+
+    if batchnorm:
+      self.conv_block4.append(tf.keras.layers.BatchNormalization())
+
+    self.conv_block4.append(tf.keras.layers.LeakyReLU())
+
+    if dropout:
+      self.conv_block4.append(tf.keras.layers.Dropout(dropout_rate))
+
+    # ResNet Block 4
+    if 'se' in resnet.lower():
+      block = [
+          SEResNet_Block(num_filters*8) for _ in range(num_blocks[3])
+      ]
+    elif 'res' in resnet.lower():
+      block = [
+          ResNet_Block(num_filters*8) for _ in range(num_blocks[3])
+      ]
+    else:
+      block = []
+    self.res_block4 = block
+
+    # Header block
+    if dense:
+      self.header_block = [tf.keras.layers.Flatten(), tf.keras.layers.Dense(1)]
+    else:
+      self.header_block = [tf.keras.layers.Conv2D(1, disc_kernel_size, strides=(2, 2), padding='valid'), tf.keras.layers.GlobalAveragePooling2D()]
+
+  def call(self, x):
+    for layer in self.conv_block1:
+      x = layer(x)
+    for layer in self.res_block1:
+      x = layer(x)
+    for layer in self.conv_block2:
+      x = layer(x)
+    for layer in self.res_block2:
+      x = layer(x)
+    for layer in self.conv_block3:
+      x = layer(x)
+    for layer in self.res_block3:
+      x = layer(x)
+    for layer in self.conv_block4:
+      x = layer(x)
+    for layer in self.res_block4:
+      x = layer(x)
+    for layer in self.header_block:
+      x = layer(x)
+    return x
