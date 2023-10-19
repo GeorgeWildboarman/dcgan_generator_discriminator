@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 
+import matplotlib.pyplot as plt
 from IPython import display
 
 from resnet.ResNet import ResNet_Blocks as ResNet_Blocks
