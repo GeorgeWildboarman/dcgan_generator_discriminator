@@ -79,21 +79,21 @@ class CycleGanTraining():
       # Generator G translates X -> Y
       # Generator F translates Y -> X.
 
-      fake_y = generator_g(real_x, training=True)
-      cycled_x = generator_f(fake_y, training=True)
+      fake_y = self.generator_g(real_x, training=True)
+      cycled_x = self.generator_f(fake_y, training=True)
 
-      fake_x = generator_f(real_y, training=True)
-      cycled_y = generator_g(fake_x, training=True)
+      fake_x = self.generator_f(real_y, training=True)
+      cycled_y = self.generator_g(fake_x, training=True)
 
       # same_x and same_y are used for identity loss.
-      same_x = generator_f(real_x, training=True)
-      same_y = generator_g(real_y, training=True)
+      same_x = self.generator_f(real_x, training=True)
+      same_y = self.generator_g(real_y, training=True)
 
-      disc_real_x = discriminator_x(real_x, training=True)
-      disc_real_y = discriminator_y(real_y, training=True)
+      disc_real_x = self.discriminator_x(real_x, training=True)
+      disc_real_y = self.discriminator_y(real_y, training=True)
 
-      disc_fake_x = discriminator_x(fake_x, training=True)
-      disc_fake_y = discriminator_y(fake_y, training=True)
+      disc_fake_x = self.discriminator_x(fake_x, training=True)
+      disc_fake_y = self.discriminator_y(fake_y, training=True)
 
       # calculate the loss
       gen_g_loss = self.generator_loss(disc_fake_y)
