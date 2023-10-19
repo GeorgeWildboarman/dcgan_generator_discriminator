@@ -110,27 +110,27 @@ class CycleGanTraining():
 
     # Calculate the gradients for generator and discriminator
     generator_g_gradients = tape.gradient(total_gen_g_loss,
-                                          generator_g.trainable_variables)
+                                          self.generator_g.trainable_variables)
     generator_f_gradients = tape.gradient(total_gen_f_loss,
-                                          generator_f.trainable_variables)
+                                          self.generator_f.trainable_variables)
 
     discriminator_x_gradients = tape.gradient(disc_x_loss,
-                                              discriminator_x.trainable_variables)
+                                              self.discriminator_x.trainable_variables)
     discriminator_y_gradients = tape.gradient(disc_y_loss,
-                                              discriminator_y.trainable_variables)
+                                              self.discriminator_y.trainable_variables)
 
     # Apply the gradients to the optimizer
     self.generator_g_optimizer.apply_gradients(zip(generator_g_gradients,
-                                              generator_g.trainable_variables))
+                                              self.generator_g.trainable_variables))
 
     self.generator_f_optimizer.apply_gradients(zip(generator_f_gradients,
-                                              generator_f.trainable_variables))
+                                              self.generator_f.trainable_variables))
 
     self.discriminator_x_optimizer.apply_gradients(zip(discriminator_x_gradients,
-                                                  discriminator_x.trainable_variables))
+                                                  self.discriminator_x.trainable_variables))
 
     self.discriminator_y_optimizer.apply_gradients(zip(discriminator_y_gradients,
-                                                  discriminator_y.trainable_variables))
+                                                  self.discriminator_y.trainable_variables))
 
     return disc_x_loss, total_gen_g_loss
 
