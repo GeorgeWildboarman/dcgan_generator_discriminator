@@ -7,7 +7,7 @@ from tensorflow.keras import layers
 
 from IPython import display
 
-from resnet.ResNet.ResNet_Blocks as ResNet_Blocks
+from resnet.ResNet import ResNet_Blocks as ResNet_Blocks
 
 class CycleGanTraining():
   def __init__(self,
