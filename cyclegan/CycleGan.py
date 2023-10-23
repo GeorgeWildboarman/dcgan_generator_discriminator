@@ -6,9 +6,9 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 import matplotlib.pyplot as plt
-from IPython import display
+from IPython.display import clear_output
 
-from resnet.ResNet import ResNet_Blocks as ResNet_Blocks
+from resnet.ResNet import ResNet_Blocks
 
 class CycleGanTraining():
   def __init__(self,
@@ -30,11 +30,26 @@ class CycleGanTraining():
     self.LAMBDA = 10
     self.loss_obj = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
+    # Define the generator optimizers
+    # The generator optimizers are different since you will train two networks separately.
     self.generator_g_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1)
     self.generator_f_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1)
-
+    # Define the discriminator optimizers
+    # The discriminator optimizers are different since you will train two networks separately.
     self.discriminator_x_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1)
     self.discriminator_y_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=beta_1)
+
+    self.checkpoint = tf.train.Checkpoint(
+        generator_g = generator_g,
+        generator_f = generator_f,
+        discriminator_x = discriminator_x,
+        discriminator_y = discriminator_y,
+        generator_g_optimizer = self.generator_g_optimizer,
+        generator_f_optimizer = self.generator_f_optimizer,
+        discriminator_x_optimizer = self.discriminator_x_optimizer,
+        discriminator_y_optimizer = self.discriminator_y_optimizer,
+        )
+
 
   def discriminator_loss(self, real, generated):
     real_loss = self.loss_obj(tf.ones_like(real), real)
@@ -71,6 +86,17 @@ class CycleGanTraining():
       plt.imshow(display_list[i] * 0.5 + 0.5)
       plt.axis('off')
     plt.show()
+
+  def save(self, checkpoint_prefix=None):
+    if checkpoint_prefix:
+      return self.checkpoint.save(file_prefix=checkpoint_prefix)
+    elif self.checkpoint_prefix:
+      return self.checkpoint.save(file_prefix=self.checkpoint_prefix)
+    else:
+      return None
+
+  def restore(self, save_path):
+    return self.checkpoint.restore(save_path)
 
   @tf.function
   def train_step(self, real_x, real_y):
