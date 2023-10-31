@@ -10,6 +10,66 @@ from IPython.display import clear_output
 
 from resnet.ResNet import ResNet_Blocks
 
+def load_image(image_path, channels=3):
+  """Loads and preprocesses images.
+  arguments:
+    image_path: String. File path or url to read from. If set url, the url must start with "http" or "https.
+    channels: Int. Number of channels of images.
+  """
+  if 'http' in image_path:
+    # Get image file from url and cache locally.
+    image_path = tf.keras.utils.get_file(os.path.basename(image_path)[-128:], image_path)
+
+  # Load and convert to float32 numpy array, and normalize to range [0, 1].
+  image = tf.io.decode_image(tf.io.read_file(image_path), channels=channels, dtype=tf.float32,)
+  # Normalize to range [-1, 1]
+  image = image*2.0-1.0
+  return image
+
+def random_crop_images(dataset, image_size=(64, 64), expand=1.1):
+  height, width = image_size
+  ex_size = ex_height, ex_width = tuple([int(x*expand) for x in image_size])
+  offset_height = np.random.randint(0, ex_height-height)
+  offset_width = np.random.randint(0, ex_width-width)
+
+  dataset = dataset.map(lambda x: tf.image.resize(x, ex_size))
+  dataset = dataset.map(lambda x: tf.image.crop_to_bounding_box(x, offset_height, offset_width, height, width))
+  return dataset
+
+def random_flip_left_right_images(dataset):
+  if np.random.randint(2):
+    dataset = dataset.map(lambda x: tf.image.flip_left_right(x))
+  return dataset
+
+def load_and_preprocessing_data(paths_x, paths_y, image_size=(64, 64), batch_size=5, channels=3, aug_num=5, expand=1.1):
+  prep_images=[]
+  print('Number of files to load for original:', len(paths_x))
+  print('Number of files to load for target:', len(paths_y))
+
+  dataset_x = tf.data.Dataset.from_tensor_slices([])
+  dataset_y = tf.data.Dataset.from_tensor_slices([])
+  for path_x, path_y in zip(paths_x, paths_y):
+    image_x = tf.image.resize(load_image(path_x, channels), image_size)
+    image_y = tf.image.resize(load_image(path_y, channels), image_size)
+    for _ in range(aug_num):
+      dataset_aug = tf.data.Dataset.from_tensor_slices([[image_x, image_y]])
+      dataset_aug = random_crop_images(dataset_aug, image_size, expand)
+      dataset_aug = random_flip_left_right_images(dataset_aug)
+      x, y = next(iter(dataset_aug))
+      dataset_x = dataset_x.concatenate(tf.data.Dataset.from_tensor_slices([x]))
+      dataset_y = dataset_y.concatenate(tf.data.Dataset.from_tensor_slices([y]))
+
+  print('Total Number of Images:',len(dataset_x))
+  buffer_size = len(dataset_x)
+
+  dataset_x = dataset_x.batch(batch_size)
+  dataset_y = dataset_y.batch(batch_size)
+
+  print('Batch size:',batch_size)
+  print('Num batchs', len(dataset_x))
+
+  return dataset_x, dataset_y
+
 class CycleGanTraining():
   def __init__(self,
                generator_g, # Tf.Model, generator model.
